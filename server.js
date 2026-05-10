@@ -16,8 +16,8 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Serve static frontend files
-app.use(express.static(path.join(__dirname, '/')));
+// Serve static frontend files from 'public' folder
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Database connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/silambam_camp';
@@ -184,7 +184,12 @@ app.get('/api/admin/export', async (req, res) => {
   }
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+// Start server only if not running in a serverless environment (like Vercel)
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+}
+
+// Export the Express API for Vercel Serverless Functions
+module.exports = app;
