@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Silambam Thodumurai Camp 2026</title>
+  <link rel="icon" type="image/png" href="./favicon.png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Cinzel:wght@700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <!-- Top Header Section -->
+  <header class="hero-section">
+    <div class="overlay"></div>
+    <button id="adminLoginBtn" class="admin-login-btn">Admin Portal</button>
+    <div class="header-content">
+      <h1 class="master-name">MASTER M. SIVAKUMAR</h1>
+      <h2 class="camp-title">Silambam Thodumurai Camp 2026</h2>
+      <h3 class="camp-subtitle">2 Days Intensive Training Camp</h3>
+
+      <div class="camp-details">
+        <div class="detail-item">
+          <span class="icon">📅</span>
+          <p>18-05-2026 & 19-05-2026</p>
+        </div>
+        <div class="detail-item">
+          <span class="icon">⏰</span>
+          <p>Morning 6:00 AM to 9:00 AM (Both Days)</p>
+        </div>
+        <div class="detail-item fee-highlight">
+          <span class="icon">💳</span>
+          <p>Registration Fee: ₹500</p>
+        </div>
+      </div>
+
+      <div class="certificate-highlight">
+        <span>🏆 Certificates will be provided for all participants 🏆</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Registration Form Section -->
+  <main class="form-container">
+    <form id="registrationForm" class="modern-form">
+      <h3 class="form-title">Student Registration</h3>
+
+      <div class="form-grid">
+        <div class="input-group">
+          <label for="studentName">Student Name *</label>
+          <input type="text" id="studentName" name="studentName" required placeholder="Enter student name">
+        </div>
+
+        <div class="input-group">
+          <label for="fatherName">Father Name *</label>
+          <input type="text" id="fatherName" name="fatherName" required placeholder="Enter father's name">
+        </div>
+
+        <div class="input-group">
+          <label for="dob">Date of Birth *</label>
+          <input type="date" id="dob" name="dob" required>
+        </div>
+
+        <div class="input-group">
+          <label for="age">Age *</label>
+          <input type="number" id="age" name="age" required placeholder="Enter age" min="3" max="100">
+        </div>
+
+        <div class="input-group">
+          <label for="phoneNumber">Phone Number *</label>
+          <input type="tel" id="phoneNumber" name="phoneNumber" required pattern="[0-9]{10}"
+            placeholder="10-digit mobile number">
+          <small class="error-text" id="phoneError">Must be exactly 10 digits.</small>
+        </div>
+
+        <div class="input-group">
+          <label for="aadharNumber">Aadhar Card Number *</label>
+          <input type="text" id="aadharNumber" name="aadharNumber" required pattern="[0-9]{12}" minlength="12"
+            maxlength="12" placeholder="12-digit Aadhar number">
+          <small class="error-text" id="aadharError">Must be exactly 12 digits.</small>
+        </div>
+
+        <div class="input-group full-width">
+          <label for="address">Address *</label>
+          <textarea id="address" name="address" required placeholder="Complete residential address" rows="2"></textarea>
+        </div>
+
+        <div class="input-group">
+          <label for="city">City *</label>
+          <select id="city" name="city" required>
+            <option value="" disabled selected>Select District / City</option>
+
+            <option value="Tiruvannamalai">Tiruvannamalai</option>
+
+          </select>
+        </div>
+
+        <div class="input-group">
+          <label for="category">Category *</label>
+          <select id="category" name="category" required>
+            <option value="Thodumurai" selected>Thodumurai</option>
+          </select>
+        </div>
+      </div>
+
+      <hr class="form-divider">
+
+      <!-- Payment Section -->
+      <div class="payment-section">
+        <h3 class="section-title">Payment Details</h3>
+        <p class="fee-text">Registration Fee: <strong>₹500</strong></p>
+
+        <div class="radio-group">
+          <label class="radio-label">
+            <input type="radio" name="paymentMode" value="Online" checked>
+            <span class="custom-radio"></span>
+            Online Payment
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="paymentMode" value="Offline">
+            <span class="custom-radio"></span>
+            Offline Payment
+          </label>
+        </div>
+
+        <!-- Online Payment Box -->
+        <div id="onlinePaymentBox" class="payment-box fade-in active">
+          <p class="payment-to">Payment to: <strong>RESHMA SIVAKUMAR</strong></p>
+          <div class="qr-placeholder"
+            style="background: white; padding: 15px; border-radius: 12px; color: black; display: inline-flex;">
+            <!-- Real QR Code for RESHMA SIVAKUMAR -->
+            <div class="qr-mockup" style="box-shadow: none;">
+              <img
+                src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=upi://pay?pa=reshmasivakumar678@okhdfcbank&pn=Reshma%20Sivakumar&am=500.00"
+                alt="UPI QR Code for Reshma Sivakumar">
+            </div>
+            <div style="text-align: center; margin-top: 10px;">
+              <p style="font-size: 0.9rem; font-weight: 600; color: #333; margin-bottom: 5px;">Scan to pay with any UPI
+                app</p>
+              <p style="font-size: 0.8rem; color: #666;">UPI ID: reshmasivakumar678@okhdfcbank</p>
+            </div>
+          </div>
+
+          <div class="upload-group">
+            <label for="paymentScreenshot">Upload Payment Screenshot *</label>
+            <input type="file" id="paymentScreenshot" name="paymentScreenshot" accept="image/*">
+            <div class="image-preview" id="imagePreviewContainer" style="display: none;">
+              <img id="imagePreview" src="" alt="Screenshot Preview">
+            </div>
+          </div>
+        </div>
+
+        <!-- Offline Payment Box -->
+        <div id="offlinePaymentBox" class="payment-box fade-in" style="display: none;">
+          <div class="warning-alert">
+            <span class="alert-icon">⚠️</span>
+            <p>Offline payment must be completed before <strong>14-05-2026</strong> to confirm your registration.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="submit-section">
+        <button type="submit" id="submitBtn" class="btn-primary">
+          <span class="btn-text">Submit Registration</span>
+          <span class="loader" style="display: none;"></span>
+        </button>
+      </div>
+    </form>
+  </main>
+
+  <!-- Success Modal -->
+  <div id="successModal" class="modal">
+    <div class="modal-content">
+      <div class="success-checkmark">
+        <div class="check-icon">
+          <span class="icon-line line-tip"></span>
+          <span class="icon-line line-long"></span>
+          <div class="icon-circle"></div>
+          <div class="icon-fix"></div>
+        </div>
+      </div>
+      <h2>Registration Successfully Submitted</h2>
+      <p>Thank you for registering for Silambam Thodumurai Camp 2026</p>
+      <button id="closeModalBtn" class="btn-secondary">Close</button>
+    </div>
+  </div>
+
+  <!-- Contacts Footer -->
+  <footer class="footer">
+    <h3 class="footer-title">Camp Masters Contact</h3>
+    <div class="contacts-grid">
+      <div class="contact-card"><span>SIVAKUMAR</span><a href="tel:+919442973351">+91 94429 73351</a></div>
+      <div class="contact-card"><span>RANJITH</span><a href="tel:+918940889883">+91 89408 89883</a></div>
+      <div class="contact-card"><span>PRASANTH</span><a href="tel:+919786893309">+91 97868 93309</a></div>
+      <div class="contact-card"><span>VASANTH</span><a href="tel:+917639940324">+91 76399 40324</a></div>
+      <div class="contact-card"><span>AKASH</span><a href="tel:+919360544137">+91 93605 44137</a></div>
+      <div class="contact-card"><span>RESHMA</span><a href="tel:+918220699041">+91 82206 99041</a></div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 Silambam Thodumurai Camp. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+
+</html>
