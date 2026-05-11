@@ -7,6 +7,7 @@ const xlsx = require('xlsx');
 const fs = require('fs');
 
 const Registration = require('./models/Registration');
+const connectDB = require('./mongodb');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -19,28 +20,6 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Serve static frontend files from 'public' folder
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Database connection
-const MONGODB_URI = process.env.MONGODB_URI;
-
-if (!MONGODB_URI) {
-  console.error("FATAL ERROR: MONGODB_URI environment variable is missing.");
-  console.error("Please add your MongoDB Atlas connection string to your Vercel Environment Variables.");
-}
-
-const connectDB = async () => {
-  if (mongoose.connection.readyState >= 1) return;
-  try {
-    await mongoose.connect(MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000
-    });
-    console.log('Connected to MongoDB Atlas');
-  } catch (err) {
-    console.error('MongoDB connection error:', err);
-    throw err;
-  }
-};
 // API ROUTES
 
 /**
