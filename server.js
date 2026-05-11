@@ -21,25 +21,24 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Database connection
 const MONGODB_URI = process.env.MONGODB_URI;
-let localDbFallback = []; // Serverless-safe in-memory fallback
+
+if (!MONGODB_URI) {
+  console.error("FATAL ERROR: MONGODB_URI environment variable is missing.");
+  console.error("Please add your MongoDB Atlas connection string to your Vercel Environment Variables.");
+}
 
 const connectDB = async () => {
-  if (mongoose.connection.readyState >= 1) return true;
-  if (!MONGODB_URI) {
-    console.warn("MONGODB_URI is missing. Using in-memory fallback.");
-    return false;
-  }
+  if (mongoose.connection.readyState >= 1) return;
   try {
     await mongoose.connect(MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
       serverSelectionTimeoutMS: 5000
     });
-    console.log('Connected to MongoDB');
-    return true;
+    console.log('Connected to MongoDB Atlas');
   } catch (err) {
     console.error('MongoDB connection error:', err);
-    return false;
+    throw err;
   }
 };
 // API ROUTES
@@ -50,35 +49,24 @@ const connectDB = async () => {
  */
 app.post('/api/register', async (req, res) => {
   try {
-    const isMongo = await connectDB();
+    await connectDB();
     const {
       studentName, fatherName, dob, age, phoneNumber,
       aadharNumber, address, city, category,
       paymentMode, paymentScreenshot
     } = req.body;
 
-    if (isMongo) {
-      const newRegistration = new Registration({
-        studentName, fatherName, dob, age, phoneNumber,
-        aadharNumber, address, city, category,
-        paymentMode, paymentScreenshot
-      });
-      await newRegistration.save();
-      res.status(201).json({ message: 'Registration Successfully Submitted', data: newRegistration });
-    } else {
-      const newReg = {
-        _id: Date.now().toString(),
-        studentName, fatherName, dob, age, phoneNumber,
-        aadharNumber, address, city, category,
-        paymentMode, paymentScreenshot,
-        createdAt: new Date().toISOString()
-      };
-      localDbFallback.push(newReg);
-      res.status(201).json({ message: 'Registration Successfully Submitted (Local Mode)', data: newReg });
-    }
+    const newRegistration = new Registration({
+      studentName, fatherName, dob, age, phoneNumber,
+      aadharNumber, address, city, category,
+      paymentMode, paymentScreenshot
+    });
+    await newRegistration.save();
+    res.status(201).json({ message: 'Registration Successfully Submitted', data: newRegistration });
+
   } catch (error) {
     console.error('Registration Error:', error);
-    res.status(500).json({ message: 'Server error during registration.', error: error.message });
+    res.status(500).json({ message: 'Server error during registration. Ensure MongoDB is connected.', error: error.message });
   }
 });
 
@@ -88,13 +76,8 @@ app.post('/api/register', async (req, res) => {
  */
 app.get('/api/admin/registrations', async (req, res) => {
   try {
-    const isMongo = await connectDB();
-    let registrations = [];
-    if (isMongo) {
-      registrations = await Registration.find().sort({ createdAt: -1 });
-    } else {
-      registrations = [...localDbFallback].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
-    }
+    await connectDB();
+    const registrations = await Registration.find().sort({ createdAt: -1 });
     
     const totalCount = registrations.length;
     const onlineCount = registrations.filter(r => r.paymentMode === 'Online').length;
@@ -102,7 +85,8 @@ app.get('/api/admin/registrations', async (req, res) => {
 
     res.status(200).json({ stats: { totalCount, onlineCount, offlineCount }, data: registrations });
   } catch (error) {
-    res.status(500).json({ message: 'Failed to fetch registrations.' });
+    console.error('Admin Fetch Error:', error);
+    res.status(500).json({ message: 'Failed to fetch registrations. Ensure MongoDB is connected.' });
   }
 });
 
@@ -112,12 +96,8 @@ app.get('/api/admin/registrations', async (req, res) => {
  */
 app.delete('/api/admin/registrations/:id', async (req, res) => {
   try {
-    const isMongo = await connectDB();
-    if (isMongo) {
-      await Registration.findByIdAndDelete(req.params.id);
-    } else {
-      localDbFallback = localDbFallback.filter(r => r._id !== req.params.id);
-    }
+    await connectDB();
+    await Registration.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: 'Registration deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Failed to delete registration.' });
@@ -130,13 +110,8 @@ app.delete('/api/admin/registrations/:id', async (req, res) => {
  */
 app.get('/api/admin/export', async (req, res) => {
   try {
-    const isMongo = await connectDB();
-    let registrations = [];
-    if (isMongo) {
-      registrations = await Registration.find().sort({ createdAt: -1 });
-    } else {
-      registrations = [...localDbFallback].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
-    }
+    await connectDB();
+    const registrations = await Registration.find().sort({ createdAt: -1 });
     
     const excelData = registrations.map(reg => ({
       'Date Submitted': new Date(reg.createdAt).toISOString().split('T')[0],
