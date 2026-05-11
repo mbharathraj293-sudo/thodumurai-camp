@@ -154,11 +154,15 @@ app.get('/api/admin/export', async (req, res) => {
     const worksheet = xlsx.utils.json_to_sheet(excelData);
     const workbook = xlsx.utils.book_new();
     xlsx.utils.book_append_sheet(workbook, worksheet, 'Registrations');
-    const buffer = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    
+    // Generate Base64 strictly for Serverless payload safety
+    const base64Excel = xlsx.write(workbook, { type: 'base64', bookType: 'xlsx' });
 
-    res.setHeader('Content-Disposition', 'attachment; filename="Silambam_Registrations_2026.xlsx"');
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.send(buffer);
+    res.status(200).json({ 
+      message: 'Success', 
+      fileName: 'Silambam_Registrations_2026.xlsx',
+      file: base64Excel 
+    });
   } catch (error) {
     console.error('Export Error:', error);
     res.status(500).json({ message: 'Failed to generate export file.' });

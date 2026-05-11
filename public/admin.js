@@ -105,6 +105,45 @@ document.addEventListener('DOMContentLoaded', () => {
     imgModal.style.display = 'none';
   });
 
+  // Export Excel Handled via Base64 for Vercel Safety
+  const downloadExcelBtn = document.getElementById('downloadExcelBtn');
+  if (downloadExcelBtn) {
+    downloadExcelBtn.addEventListener('click', async () => {
+      const originalText = downloadExcelBtn.textContent;
+      downloadExcelBtn.textContent = '⏳ Downloading...';
+      downloadExcelBtn.disabled = true;
+
+      try {
+        const response = await fetch('/api/admin/export');
+        if (!response.ok) throw new Error('Failed to fetch Excel data');
+        
+        const data = await response.json();
+        
+        // Decode Base64 to binary
+        const byteCharacters = atob(data.file);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        
+        // Trigger browser native download
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = data.fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (err) {
+        alert('Error downloading Excel: ' + err.message);
+      } finally {
+        downloadExcelBtn.textContent = originalText;
+        downloadExcelBtn.disabled = false;
+      }
+    });
+  }
+
   // Init
   fetchRegistrations();
 });
