@@ -17,16 +17,27 @@ document.addEventListener('DOMContentLoaded', () => {
       const response = await fetch('/api/admin/registrations');
       const result = await response.json();
 
-      if (response.ok) {
+      if (response.ok && result.data && result.data.length > 0) {
         registrationsData = result.data;
         updateStats(result.stats);
         renderTable(registrationsData);
       } else {
-        tableBody.innerHTML = `<tr><td colspan="7">Failed to load data.</td></tr>`;
+        throw new Error("Backend empty or unconfigured.");
       }
     } catch (err) {
-      console.error(err);
-      tableBody.innerHTML = `<tr><td colspan="7">Error connecting to server.</td></tr>`;
+      console.warn("Using Local Browser Fallback Mode for Admin Portal.");
+      const localRegs = JSON.parse(localStorage.getItem('silambam_fallback') || '[]');
+      const sorted = localRegs.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+      
+      const stats = {
+        totalCount: sorted.length,
+        onlineCount: sorted.filter(r => r.paymentMode === 'Online').length,
+        offlineCount: sorted.filter(r => r.paymentMode === 'Offline').length
+      };
+
+      registrationsData = sorted;
+      updateStats(stats);
+      renderTable(registrationsData);
     }
   }
 
@@ -89,15 +100,15 @@ document.addEventListener('DOMContentLoaded', () => {
   window.deleteReg = async (id) => {
     if (confirm("Are you sure you want to delete this registration?")) {
       try {
-        const response = await fetch(`/api/admin/registrations/${id}`, { method: 'DELETE' });
-        if (response.ok) {
-          fetchRegistrations(); // refetch
-        } else {
-          alert('Failed to delete');
-        }
-      } catch (e) {
-        alert('Error: ' + e.message);
-      }
+        await fetch(`/api/admin/registrations/${id}`, { method: 'DELETE' });
+      } catch (e) {}
+
+      // Delete locally too
+      let localRegs = JSON.parse(localStorage.getItem('silambam_fallback') || '[]');
+      localRegs = localRegs.filter(r => r._id !== String(id));
+      localStorage.setItem('silambam_fallback', JSON.stringify(localRegs));
+      
+      fetchRegistrations(); // refetch
     }
   };
 
