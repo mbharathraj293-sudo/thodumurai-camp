@@ -31,20 +31,31 @@ if (!GOOGLE_SCRIPT_URL) {
  */
 app.post('/api/register', async (req, res) => {
   try {
-    if (!GOOGLE_SCRIPT_URL) throw new Error("Google Script URL missing");
+    if (!GOOGLE_SCRIPT_URL) {
+      return res.status(400).json({ message: "Setup Error: You forgot to add GOOGLE_SCRIPT_URL in your Vercel Environment Variables!" });
+    }
+    if (!GOOGLE_SCRIPT_URL.startsWith('https://script.google.com/')) {
+      return res.status(400).json({ message: "Setup Error: Invalid GOOGLE_SCRIPT_URL. You pasted the Google Sheet URL instead of the 'Web App' URL." });
+    }
 
     const response = await fetch(GOOGLE_SCRIPT_URL, {
       method: 'POST',
       body: JSON.stringify(req.body)
     });
-    const result = await response.json();
+    
+    let result;
+    try {
+      result = await response.json();
+    } catch (e) {
+      return res.status(500).json({ message: "Setup Error: Google Apps Script failed. Ensure you deployed it as a 'Web app' and set Access to 'Anyone'." });
+    }
     
     if (result.status !== 'success') throw new Error(result.error);
 
     res.status(201).json({ message: 'Registration Successfully Submitted', data: { _id: result.id, ...req.body } });
   } catch (error) {
     console.error('Registration Error:', error);
-    res.status(500).json({ message: 'Server error during registration.', error: error.message });
+    res.status(500).json({ message: error.message || 'Server error during registration.' });
   }
 });
 
@@ -54,10 +65,17 @@ app.post('/api/register', async (req, res) => {
  */
 app.get('/api/admin/registrations', async (req, res) => {
   try {
-    if (!GOOGLE_SCRIPT_URL) throw new Error("Google Script URL missing");
+    if (!GOOGLE_SCRIPT_URL) {
+      return res.status(400).json({ message: "Setup Error: GOOGLE_SCRIPT_URL is missing in Vercel settings!" });
+    }
 
     const response = await fetch(GOOGLE_SCRIPT_URL);
-    const result = await response.json();
+    let result;
+    try {
+      result = await response.json();
+    } catch (e) {
+      return res.status(500).json({ message: "Setup Error: Google Apps Script not accessible. Did you set access to 'Anyone'?" });
+    }
     
     if (result.status !== 'success') throw new Error(result.error);
 
