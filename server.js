@@ -1,13 +1,8 @@
 require('dotenv').config();
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 const xlsx = require('xlsx');
-const fs = require('fs');
-
-const Registration = require('./models/Registration');
-const connectDB = require('./mongodb');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,43 +15,53 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Serve static frontend files from 'public' folder
 app.use(express.static(path.join(__dirname, 'public')));
 
+// GOOGLE SHEETS CONNECTION
+const GOOGLE_SCRIPT_URL = process.env.GOOGLE_SCRIPT_URL;
+
+if (!GOOGLE_SCRIPT_URL) {
+  console.error("FATAL ERROR: GOOGLE_SCRIPT_URL environment variable is missing.");
+  console.error("Please add your Google Apps Script Web App URL to your Vercel Environment Variables or local .env file.");
+}
+
 // API ROUTES
 
 /**
  * @route POST /api/register
- * @desc Register a student
+ * @desc Forwards form data to Google Sheets
  */
 app.post('/api/register', async (req, res) => {
   try {
-    await connectDB();
-    const {
-      studentName, fatherName, dob, age, phoneNumber,
-      aadharNumber, address, city, category,
-      paymentMode, paymentScreenshot
-    } = req.body;
+    if (!GOOGLE_SCRIPT_URL) throw new Error("Google Script URL missing");
 
-    const newRegistration = new Registration({
-      studentName, fatherName, dob, age, phoneNumber,
-      aadharNumber, address, city, category,
-      paymentMode, paymentScreenshot
+    const response = await fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify(req.body)
     });
-    await newRegistration.save();
-    res.status(201).json({ message: 'Registration Successfully Submitted', data: newRegistration });
+    const result = await response.json();
+    
+    if (result.status !== 'success') throw new Error(result.error);
 
+    res.status(201).json({ message: 'Registration Successfully Submitted', data: { _id: result.id, ...req.body } });
   } catch (error) {
     console.error('Registration Error:', error);
-    res.status(500).json({ message: 'Server error during registration. Ensure MongoDB is connected.', error: error.message });
+    res.status(500).json({ message: 'Server error during registration.', error: error.message });
   }
 });
 
 /**
  * @route GET /api/admin/registrations
- * @desc Fetch all registrations
+ * @desc Fetches data from Google Sheets
  */
 app.get('/api/admin/registrations', async (req, res) => {
   try {
-    await connectDB();
-    const registrations = await Registration.find().sort({ createdAt: -1 });
+    if (!GOOGLE_SCRIPT_URL) throw new Error("Google Script URL missing");
+
+    const response = await fetch(GOOGLE_SCRIPT_URL);
+    const result = await response.json();
+    
+    if (result.status !== 'success') throw new Error(result.error);
+
+    const registrations = result.data || [];
     
     const totalCount = registrations.length;
     const onlineCount = registrations.filter(r => r.paymentMode === 'Online').length;
@@ -65,32 +70,46 @@ app.get('/api/admin/registrations', async (req, res) => {
     res.status(200).json({ stats: { totalCount, onlineCount, offlineCount }, data: registrations });
   } catch (error) {
     console.error('Admin Fetch Error:', error);
-    res.status(500).json({ message: 'Failed to fetch registrations. Ensure MongoDB is connected.' });
+    res.status(500).json({ message: 'Failed to fetch registrations.' });
   }
 });
 
 /**
  * @route DELETE /api/admin/registrations/:id
- * @desc Delete a registration entry
+ * @desc Forwards delete command to Google Sheets
  */
 app.delete('/api/admin/registrations/:id', async (req, res) => {
   try {
-    await connectDB();
-    await Registration.findByIdAndDelete(req.params.id);
+    if (!GOOGLE_SCRIPT_URL) throw new Error("Google Script URL missing");
+
+    const response = await fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'delete', id: req.params.id })
+    });
+    const result = await response.json();
+
+    if (result.status !== 'success') throw new Error(result.error);
+    
     res.status(200).json({ message: 'Registration deleted successfully' });
   } catch (error) {
+    console.error('Delete Error:', error);
     res.status(500).json({ message: 'Failed to delete registration.' });
   }
 });
 
 /**
  * @route GET /api/admin/export
- * @desc Generate and download Excel sheet
+ * @desc Generates Excel from Google Sheets data
  */
 app.get('/api/admin/export', async (req, res) => {
   try {
-    await connectDB();
-    const registrations = await Registration.find().sort({ createdAt: -1 });
+    if (!GOOGLE_SCRIPT_URL) throw new Error("Google Script URL missing");
+
+    const response = await fetch(GOOGLE_SCRIPT_URL);
+    const result = await response.json();
+    if (result.status !== 'success') throw new Error(result.error);
+    
+    const registrations = result.data || [];
     
     const excelData = registrations.map(reg => ({
       'Date Submitted': new Date(reg.createdAt).toISOString().split('T')[0],
@@ -109,7 +128,6 @@ app.get('/api/admin/export', async (req, res) => {
     const workbook = xlsx.utils.book_new();
     xlsx.utils.book_append_sheet(workbook, worksheet, 'Registrations');
     
-    // Generate Base64 strictly for Serverless payload safety
     const base64Excel = xlsx.write(workbook, { type: 'base64', bookType: 'xlsx' });
 
     res.status(200).json({ 
@@ -123,12 +141,12 @@ app.get('/api/admin/export', async (req, res) => {
   }
 });
 
-// Start server only if not running in a serverless environment (like Vercel)
+// Start server only if not running in a serverless environment
 if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
   });
 }
 
-// Export the Express API for Vercel Serverless Functions
+// Export for Vercel
 module.exports = app;
