@@ -18,9 +18,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 // GOOGLE SHEETS CONNECTION
 const GOOGLE_SCRIPT_URL = process.env.GOOGLE_SCRIPT_URL;
 
-if (!GOOGLE_SCRIPT_URL) {
-  console.error("FATAL ERROR: GOOGLE_SCRIPT_URL environment variable is missing.");
-  console.error("Please add your Google Apps Script Web App URL to your Vercel Environment Variables or local .env file.");
+let fallbackDb = []; // Zero-config in-memory fallback to prevent crashes
+
+if (!GOOGLE_SCRIPT_URL || !GOOGLE_SCRIPT_URL.startsWith('https://script.google.com/')) {
+  console.warn("WARNING: GOOGLE_SCRIPT_URL is missing or invalid. Using Zero-Config Memory Mode.");
 }
 
 // API ROUTES
@@ -31,11 +32,10 @@ if (!GOOGLE_SCRIPT_URL) {
  */
 app.post('/api/register', async (req, res) => {
   try {
-    if (!GOOGLE_SCRIPT_URL) {
-      return res.status(400).json({ message: "Setup Error: You forgot to add GOOGLE_SCRIPT_URL in your Vercel Environment Variables!" });
-    }
-    if (!GOOGLE_SCRIPT_URL.startsWith('https://script.google.com/')) {
-      return res.status(400).json({ message: "Setup Error: Invalid GOOGLE_SCRIPT_URL. You pasted the Google Sheet URL instead of the 'Web App' URL." });
+    if (!GOOGLE_SCRIPT_URL || !GOOGLE_SCRIPT_URL.startsWith('https://script.google.com/')) {
+      const newReg = { _id: Date.now().toString(), createdAt: new Date().toISOString(), ...req.body };
+      fallbackDb.push(newReg);
+      return res.status(201).json({ message: 'Registration Successfully Submitted (Memory Mode)', data: newReg });
     }
 
     const response = await fetch(GOOGLE_SCRIPT_URL, {
@@ -65,8 +65,12 @@ app.post('/api/register', async (req, res) => {
  */
 app.get('/api/admin/registrations', async (req, res) => {
   try {
-    if (!GOOGLE_SCRIPT_URL) {
-      return res.status(400).json({ message: "Setup Error: GOOGLE_SCRIPT_URL is missing in Vercel settings!" });
+    if (!GOOGLE_SCRIPT_URL || !GOOGLE_SCRIPT_URL.startsWith('https://script.google.com/')) {
+      const sorted = [...fallbackDb].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+      const totalCount = sorted.length;
+      const onlineCount = sorted.filter(r => r.paymentMode === 'Online').length;
+      const offlineCount = sorted.filter(r => r.paymentMode === 'Offline').length;
+      return res.status(200).json({ stats: { totalCount, onlineCount, offlineCount }, data: sorted });
     }
 
     const response = await fetch(GOOGLE_SCRIPT_URL);
@@ -98,7 +102,10 @@ app.get('/api/admin/registrations', async (req, res) => {
  */
 app.delete('/api/admin/registrations/:id', async (req, res) => {
   try {
-    if (!GOOGLE_SCRIPT_URL) throw new Error("Google Script URL missing");
+    if (!GOOGLE_SCRIPT_URL || !GOOGLE_SCRIPT_URL.startsWith('https://script.google.com/')) {
+      fallbackDb = fallbackDb.filter(r => r._id !== req.params.id);
+      return res.status(200).json({ message: 'Registration deleted successfully' });
+    }
 
     const response = await fetch(GOOGLE_SCRIPT_URL, {
       method: 'POST',
@@ -121,13 +128,15 @@ app.delete('/api/admin/registrations/:id', async (req, res) => {
  */
 app.get('/api/admin/export', async (req, res) => {
   try {
-    if (!GOOGLE_SCRIPT_URL) throw new Error("Google Script URL missing");
-
-    const response = await fetch(GOOGLE_SCRIPT_URL);
-    const result = await response.json();
-    if (result.status !== 'success') throw new Error(result.error);
-    
-    const registrations = result.data || [];
+    let registrations = [];
+    if (!GOOGLE_SCRIPT_URL || !GOOGLE_SCRIPT_URL.startsWith('https://script.google.com/')) {
+      registrations = [...fallbackDb].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+    } else {
+      const response = await fetch(GOOGLE_SCRIPT_URL);
+      const result = await response.json();
+      if (result.status !== 'success') throw new Error(result.error);
+      registrations = result.data || [];
+    }
     
     const excelData = registrations.map(reg => ({
       'Date Submitted': new Date(reg.createdAt).toISOString().split('T')[0],
