@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Fetch Data
   async function fetchRegistrations() {
     try {
-      const response = await fetch('http://localhost:3000/api/admin/registrations');
+      const response = await fetch('/api/admin/registrations');
       const result = await response.json();
 
       if (response.ok) {
@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
   window.deleteReg = async (id) => {
     if (confirm("Are you sure you want to delete this registration?")) {
       try {
-        const response = await fetch(`http://localhost:3000/api/admin/registrations/${id}`, { method: 'DELETE' });
+        const response = await fetch(`/api/admin/registrations/${id}`, { method: 'DELETE' });
         if (response.ok) {
           fetchRegistrations(); // refetch
         } else {
