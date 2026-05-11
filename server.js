@@ -20,40 +20,28 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Database connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/silambam_camp';
-let isConnectedToMongo = false;
-const LOCAL_DB_PATH = path.join(__dirname, 'local_db.json');
+const MONGODB_URI = process.env.MONGODB_URI;
+let localDbFallback = []; // Serverless-safe in-memory fallback
 
-mongoose.connect(MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 5000 // Fast fail
-})
-.then(() => {
-  console.log('Connected to MongoDB successfully');
-  isConnectedToMongo = true;
-})
-.catch((err) => {
-  console.error('MongoDB connection failed. Using local JSON file fallback database!', err.message);
-  isConnectedToMongo = false;
-  // Initialize local DB file if it doesn't exist
-  if (!fs.existsSync(LOCAL_DB_PATH)) {
-    fs.writeFileSync(LOCAL_DB_PATH, JSON.stringify([]));
+const connectDB = async () => {
+  if (mongoose.connection.readyState >= 1) return true;
+  if (!MONGODB_URI) {
+    console.warn("MONGODB_URI is missing. Using in-memory fallback.");
+    return false;
   }
-});
-
-
-// Helper for Local DB
-const getLocalData = () => {
-  if (!fs.existsSync(LOCAL_DB_PATH)) return [];
-  const data = fs.readFileSync(LOCAL_DB_PATH);
-  return JSON.parse(data);
+  try {
+    await mongoose.connect(MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 5000
+    });
+    console.log('Connected to MongoDB');
+    return true;
+  } catch (err) {
+    console.error('MongoDB connection error:', err);
+    return false;
+  }
 };
-
-const saveLocalData = (data) => {
-  fs.writeFileSync(LOCAL_DB_PATH, JSON.stringify(data, null, 2));
-};
-
 // API ROUTES
 
 /**
@@ -62,13 +50,14 @@ const saveLocalData = (data) => {
  */
 app.post('/api/register', async (req, res) => {
   try {
+    const isMongo = await connectDB();
     const {
       studentName, fatherName, dob, age, phoneNumber,
       aadharNumber, address, city, category,
       paymentMode, paymentScreenshot
     } = req.body;
 
-    if (isConnectedToMongo) {
+    if (isMongo) {
       const newRegistration = new Registration({
         studentName, fatherName, dob, age, phoneNumber,
         aadharNumber, address, city, category,
@@ -77,8 +66,6 @@ app.post('/api/register', async (req, res) => {
       await newRegistration.save();
       res.status(201).json({ message: 'Registration Successfully Submitted', data: newRegistration });
     } else {
-      // Local DB Fallback (Allows user to test without installing MongoDB)
-      const registrations = getLocalData();
       const newReg = {
         _id: Date.now().toString(),
         studentName, fatherName, dob, age, phoneNumber,
@@ -86,8 +73,7 @@ app.post('/api/register', async (req, res) => {
         paymentMode, paymentScreenshot,
         createdAt: new Date().toISOString()
       };
-      registrations.push(newReg);
-      saveLocalData(registrations);
+      localDbFallback.push(newReg);
       res.status(201).json({ message: 'Registration Successfully Submitted (Local Mode)', data: newReg });
     }
   } catch (error) {
@@ -102,22 +88,19 @@ app.post('/api/register', async (req, res) => {
  */
 app.get('/api/admin/registrations', async (req, res) => {
   try {
+    const isMongo = await connectDB();
     let registrations = [];
-    if (isConnectedToMongo) {
+    if (isMongo) {
       registrations = await Registration.find().sort({ createdAt: -1 });
     } else {
-      registrations = getLocalData().sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+      registrations = [...localDbFallback].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
     
-    // Stats calculation
     const totalCount = registrations.length;
     const onlineCount = registrations.filter(r => r.paymentMode === 'Online').length;
     const offlineCount = registrations.filter(r => r.paymentMode === 'Offline').length;
 
-    res.status(200).json({
-      stats: { totalCount, onlineCount, offlineCount },
-      data: registrations
-    });
+    res.status(200).json({ stats: { totalCount, onlineCount, offlineCount }, data: registrations });
   } catch (error) {
     res.status(500).json({ message: 'Failed to fetch registrations.' });
   }
@@ -129,12 +112,11 @@ app.get('/api/admin/registrations', async (req, res) => {
  */
 app.delete('/api/admin/registrations/:id', async (req, res) => {
   try {
-    if (isConnectedToMongo) {
+    const isMongo = await connectDB();
+    if (isMongo) {
       await Registration.findByIdAndDelete(req.params.id);
     } else {
-      let registrations = getLocalData();
-      registrations = registrations.filter(r => r._id !== req.params.id);
-      saveLocalData(registrations);
+      localDbFallback = localDbFallback.filter(r => r._id !== req.params.id);
     }
     res.status(200).json({ message: 'Registration deleted successfully' });
   } catch (error) {
@@ -148,14 +130,14 @@ app.delete('/api/admin/registrations/:id', async (req, res) => {
  */
 app.get('/api/admin/export', async (req, res) => {
   try {
+    const isMongo = await connectDB();
     let registrations = [];
-    if (isConnectedToMongo) {
+    if (isMongo) {
       registrations = await Registration.find().sort({ createdAt: -1 });
     } else {
-      registrations = getLocalData().sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+      registrations = [...localDbFallback].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
     
-    // Map data for excel
     const excelData = registrations.map(reg => ({
       'Date Submitted': new Date(reg.createdAt).toISOString().split('T')[0],
       'Student Name': reg.studentName,
@@ -172,7 +154,6 @@ app.get('/api/admin/export', async (req, res) => {
     const worksheet = xlsx.utils.json_to_sheet(excelData);
     const workbook = xlsx.utils.book_new();
     xlsx.utils.book_append_sheet(workbook, worksheet, 'Registrations');
-
     const buffer = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
 
     res.setHeader('Content-Disposition', 'attachment; filename="Silambam_Registrations_2026.xlsx"');
