@@ -119,7 +119,7 @@
         <p class="fee-text">Registration Fee: <strong>₹500</strong></p>
 
         <label class="radio-label">
-          <input type="radio" name="paymentMode" value="Offline">
+          <input type="radio" name="paymentMode" value="Offline" checked required>
           <span class="custom-radio"></span>
           Offline Payment
         </label>
@@ -127,7 +127,7 @@
 
 
       <!-- Offline Payment Box (SIBLING of onlinePaymentBox, NOT child) -->
-      <div id="offlinePaymentBox" class="payment-box fade-in" style="display: none;">
+      <div id="offlinePaymentBox" class="payment-box fade-in" style="display: block;">
         <div class="warning-alert">
           <span class="alert-icon">⚠️</span>
           <p>Offline payment must be completed before <strong>15-05-2026</strong> to confirm your registration.</p>

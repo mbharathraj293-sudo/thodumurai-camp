@@ -40,11 +40,29 @@ app.use(express.static(path.join(__dirname, 'public')));
 // --- GOOGLE SHEETS CONNECTION ---
 const GOOGLE_SCRIPT_URL = process.env.GOOGLE_SCRIPT_URL;
 
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
 const isGoogleConfigured = () =>
   GOOGLE_SCRIPT_URL &&
   GOOGLE_SCRIPT_URL.trim() !== '' &&
   GOOGLE_SCRIPT_URL !== 'your_google_apps_script_url_here' &&
   GOOGLE_SCRIPT_URL.startsWith('https://script.google.com/');
+
+const isSupabaseConfigured = () =>
+  SUPABASE_URL &&
+  SUPABASE_URL.trim() !== '' &&
+  !SUPABASE_URL.includes('your-project.supabase.co') &&
+  SUPABASE_URL.startsWith('https://') &&
+  SUPABASE_SERVICE_ROLE_KEY &&
+  SUPABASE_SERVICE_ROLE_KEY.trim().startsWith('sb_secret_');
+
+const getSupabaseHeaders = () => ({
+  'Content-Type': 'application/json',
+  apikey: SUPABASE_SERVICE_ROLE_KEY,
+  Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+  Prefer: 'return=representation'
+});
 
 // NOTE: On Vercel serverless, in-memory fallbackDb resets on every cold start.
 // If GOOGLE_SCRIPT_URL is not configured, data is NOT persisted across requests.
@@ -113,6 +131,30 @@ app.post('/api/register', async (req, res) => {
   try {
     console.log('[POST /api/register] Incoming registration:', req.body?.studentName);
 
+    if (isSupabaseConfigured()) {
+      const newReg = {
+        ...req.body,
+        createdAt: new Date().toISOString()
+      };
+
+      const response = await safeFetch(`${SUPABASE_URL}/rest/v1/registrations`, {
+        method: 'POST',
+        headers: getSupabaseHeaders(),
+        body: JSON.stringify([newReg])
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.message || 'Supabase registration failed.');
+      }
+
+      console.log('[Supabase] Registration saved with ID:', result[0]?.id || 'unknown');
+      return res.status(201).json({
+        message: 'Registration Successfully Submitted',
+        data: result[0]
+      });
+    }
+
     if (!isGoogleConfigured()) {
       const newReg = {
         _id: Date.now().toString(),
@@ -149,8 +191,8 @@ app.post('/api/register', async (req, res) => {
     console.error('[POST /api/register] Error:', error.message);
     res.status(500).json({
       message: error.message || 'Server error during registration.',
-      hint: !isGoogleConfigured()
-        ? 'Google Sheets is not configured. Set GOOGLE_SCRIPT_URL in environment variables.'
+      hint: !isGoogleConfigured() && !isSupabaseConfigured()
+        ? 'No backend configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY or GOOGLE_SCRIPT_URL.'
         : undefined
     });
   }
@@ -163,6 +205,29 @@ app.post('/api/register', async (req, res) => {
 app.get('/api/admin/registrations', async (req, res) => {
   try {
     console.log('[GET /api/admin/registrations] Fetching data...');
+
+    if (isSupabaseConfigured()) {
+      const response = await safeFetch(
+        `${SUPABASE_URL}/rest/v1/registrations?select=*&order=createdAt.desc`,
+        { headers: getSupabaseHeaders() }
+      );
+      const registrations = await response.json();
+
+      if (!response.ok) {
+        throw new Error(registrations.message || 'Supabase fetch failed.');
+      }
+
+      console.log('[Supabase] Fetched', registrations.length, 'registrations.');
+      return res.status(200).json({
+        stats: {
+          totalCount: registrations.length,
+          onlineCount: registrations.filter(r => r.paymentMode === 'Online').length,
+          offlineCount: registrations.filter(r => r.paymentMode === 'Offline').length
+        },
+        data: registrations,
+        mode: 'supabase'
+      });
+    }
 
     if (!isGoogleConfigured()) {
       const sorted = [...fallbackDb].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -202,7 +267,9 @@ app.get('/api/admin/registrations', async (req, res) => {
     console.error('[GET /api/admin/registrations] Error:', error.message);
     res.status(500).json({
       message: 'Failed to fetch registrations: ' + error.message,
-      hint: 'Check your GOOGLE_SCRIPT_URL and make sure the Apps Script is deployed with access set to Anyone.'
+      hint: !isSupabaseConfigured() && !isGoogleConfigured()
+        ? 'No backend configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY or GOOGLE_SCRIPT_URL.'
+        : 'Check your Supabase and/or Google Sheets backend configuration.'
     });
   }
 });
@@ -215,6 +282,24 @@ app.delete('/api/admin/registrations/:id', async (req, res) => {
   try {
     const { id } = req.params;
     console.log('[DELETE /api/admin/registrations/:id] Deleting ID:', id);
+
+    if (isSupabaseConfigured()) {
+      const response = await safeFetch(
+        `${SUPABASE_URL}/rest/v1/registrations?id=eq.${encodeURIComponent(id)}`,
+        {
+          method: 'DELETE',
+          headers: getSupabaseHeaders()
+        }
+      );
+
+      if (!response.ok) {
+        const errorBody = await response.text().catch(() => '');
+        throw new Error(`Supabase delete failed: ${response.status} ${errorBody}`);
+      }
+
+      console.log('[Supabase] Deleted ID:', id);
+      return res.status(200).json({ message: 'Registration deleted successfully' });
+    }
 
     if (!isGoogleConfigured()) {
       const before = fallbackDb.length;
@@ -252,7 +337,15 @@ app.get('/api/admin/export', async (req, res) => {
     console.log('[GET /api/admin/export] Generating Excel...');
     let registrations = [];
 
-    if (!isGoogleConfigured()) {
+    if (isSupabaseConfigured()) {
+      const response = await safeFetch(
+        `${SUPABASE_URL}/rest/v1/registrations?select=*&order=createdAt.desc`,
+        { headers: getSupabaseHeaders() }
+      );
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || 'Supabase fetch failed.');
+      registrations = Array.isArray(result) ? result : [];
+    } else if (!isGoogleConfigured()) {
       registrations = [...fallbackDb].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     } else {
       const response = await safeFetch(GOOGLE_SCRIPT_URL);
