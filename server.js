@@ -301,6 +301,15 @@ app.get('/api/admin/export', async (req, res) => {
   }
 });
 
+// --- Routes for admin pages ---
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+app.get('/admin.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
 // --- Catch-all: serve index.html for unknown routes (SPA fallback) ---
 app.get('*', (req, res) => {
   // Don't intercept API routes
@@ -308,6 +317,20 @@ app.get('*', (req, res) => {
     return res.status(404).json({ message: 'API route not found.' });
   }
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// --- Error handling middleware ---
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({ 
+    message: 'Internal server error',
+    error: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+  });
+});
+
+// --- 404 handler for unmatched routes ---
+app.use((req, res) => {
+  res.status(404).json({ message: 'Route not found' });
 });
 
 // --- Start server only when running directly (not in serverless) ---

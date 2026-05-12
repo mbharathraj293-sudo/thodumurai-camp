@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sivakumar Admin Panel</title>
   <link rel="icon" type="image/png" href="./favicon.png">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Cinzel:wght@700&display=swap"
+    rel="stylesheet">
   <style>
     :root {
       --primary-red: #D32F2F;
@@ -15,7 +17,7 @@
       --text-muted: #aaaaaa;
       --gold: #FFD700;
     }
-    
+
     body {
       font-family: 'Inter', sans-serif;
       background-color: var(--bg-dark);
@@ -80,6 +82,7 @@
         flex-direction: column;
         text-align: center;
       }
+
       .header-actions {
         width: 100%;
         justify-content: center;
@@ -104,7 +107,7 @@
       padding: 1.5rem;
       border-radius: 8px;
       border-left: 5px solid var(--primary-red);
-      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
     }
 
     .stat-card h3 {
@@ -153,7 +156,8 @@
       text-align: left;
     }
 
-    th, td {
+    th,
+    td {
       padding: 12px 15px;
       border-bottom: 1px solid #333;
     }
@@ -198,8 +202,11 @@
     #imgModal {
       display: none;
       position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.9);
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
       align-items: center;
       justify-content: center;
       z-index: 1000;
@@ -221,13 +228,15 @@
     }
   </style>
 </head>
+
 <body>
 
   <header>
-    <h1 class="admin-title">Sivakumar Admin Panel</h1>
+    <h1 class="admin-title">Admin Panel</h1>
     <div class="header-actions">
       <a href="index.html" class="btn-back">⬅ Back</a>
-      <button id="downloadExcelBtn" class="btn-export" style="border:none; cursor:pointer; font-family:var(--font-main);">📥 Download Excel</button>
+      <button id="downloadExcelBtn" class="btn-export"
+        style="border:none; cursor:pointer; font-family:var(--font-main);">📥 Download Excel</button>
     </div>
   </header>
 
@@ -236,10 +245,6 @@
       <div class="stat-card">
         <h3>Total Registrations</h3>
         <p id="statTotal">0</p>
-      </div>
-      <div class="stat-card" style="border-left-color: #4CAF50;">
-        <h3>Online Payments</h3>
-        <p id="statOnline">0</p>
       </div>
       <div class="stat-card" style="border-left-color: #FF9800;">
         <h3>Offline Payments</h3>
@@ -267,7 +272,9 @@
         </thead>
         <tbody id="tableBody">
           <!-- Rows injected via JS -->
-          <tr><td colspan="7" style="text-align: center;">Loading data...</td></tr>
+          <tr>
+            <td colspan="7" style="text-align: center;">Loading data...</td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -280,4 +287,5 @@
 
   <script src="admin.js"></script>
 </body>
+
 </html>

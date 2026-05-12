@@ -15,7 +15,9 @@
   <!-- Top Header Section -->
   <header class="hero-section">
     <div class="overlay"></div>
-    <button id="adminLoginBtn" class="admin-login-btn">Admin Portal</button>
+    <button onclick="openAdminLogin()" class="admin-login-btn">
+      Admin Portal
+    </button>
     <div class="header-content">
       <h1 class="master-name">MASTER M. SIVAKUMAR</h1>
       <h2 class="camp-title">Silambam Thodumurai Camp 2026</h2>
@@ -39,6 +41,10 @@
       <div class="certificate-highlight">
         <span>🏆 Certificates will be provided for all participants 🏆</span>
       </div>
+    </div>
+    <div class="Location-highlight">
+      <span class="icon"></span>
+      <p>so.Kilnachipattu government school, tindivanam road, Tiruvannamalai, Tamil Nadu 606611</p>
     </div>
   </header>
 
@@ -112,123 +118,28 @@
         <h3 class="section-title">Payment Details</h3>
         <p class="fee-text">Registration Fee: <strong>₹500</strong></p>
 
-        <div class="radio-group">
-          <label class="radio-label">
-            <input type="radio" name="paymentMode" value="Online" checked>
-            <span class="custom-radio"></span>
-            Online Payment
-          </label>
-          <label class="radio-label">
-            <input type="radio" name="paymentMode" value="Offline">
-            <span class="custom-radio"></span>
-            Offline Payment
-          </label>
+        <label class="radio-label">
+          <input type="radio" name="paymentMode" value="Offline">
+          <span class="custom-radio"></span>
+          Offline Payment
+        </label>
+      </div>
+
+
+      <!-- Offline Payment Box (SIBLING of onlinePaymentBox, NOT child) -->
+      <div id="offlinePaymentBox" class="payment-box fade-in" style="display: none;">
+        <div class="warning-alert">
+          <span class="alert-icon">⚠️</span>
+          <p>Offline payment must be completed before <strong>15-05-2026</strong> to confirm your registration.</p>
         </div>
+      </div>
 
-        <!-- Online Payment Box -->
-        <div id="onlinePaymentBox" class="payment-box fade-in active">
-          <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
-
-            <!-- Reshma QR -->
-            <div class="qr-placeholder"
-              style="flex: 1; min-width: 250px; background: white; padding: 15px; border-radius: 12px; color: black; display: flex; flex-direction: column; align-items: center;">
-              <p style="font-size: 1rem; margin-bottom: 15px; text-align: center;">Payment to:<br><strong>RESHMA
-                  SIVAKUMAR</strong></p>
-              <div class="qr-mockup" style="box-shadow: none;">
-                <img
-                  src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=upi://pay?pa=reshmasivakumar678@okhdfcbank&pn=Reshma%20Sivakumar&am=500.00"
-                  alt="UPI QR Code for Reshma Sivakumar">
-              </div>
-              <div style="text-align: center; margin-top: 10px;">
-                <p style="font-size: 0.9rem; font-weight: 600; color: #333; margin-bottom: 5px;">Scan to pay with any
-                  UPI app</p>
-                <p style="font-size: 0.8rem; color: #666;">UPI ID: reshmasivakumar678@okhdfcbank</p>
-              </div>
-            </div>
-
-            <!-- Ranjith QR -->
-            <div class="qr-placeholder"
-              style="flex: 1; min-width: 250px; background: white; padding: 15px; border-radius: 12px; color: black; display: flex; flex-direction: column; align-items: center;">
-              <p style="font-size: 1rem; margin-bottom: 15px; text-align: center;">Payment to:<br><strong>MR. RANJITH
-                  ELUMALAI</strong></p>
-              <div class="qr-mockup"
-                style="box-shadow: none; overflow: hidden; display: flex; justify-content: center;">
-                <img src="ranjith-qr.jpg" alt="UPI QR Code for Ranjith Elumalai"
-                  style="max-width: 180px; height: auto;">
-              </div>
-              <div style="text-align: center; margin-top: 10px;">
-                <p style="font-size: 0.9rem; font-weight: 600; color: #333; margin-bottom: 5px;">Scan to pay via PhonePe
-                </p>
-                <p style="font-size: 0.8rem; color: #666;">Or any UPI app</p>
-              </div>
-            </div>
-
-            <!-- Prasanth QR -->
-            <div class="qr-placeholder"
-              style="flex: 1; min-width: 250px; background: white; padding: 15px; border-radius: 12px; color: black; display: flex; flex-direction: column; align-items: center;">
-              <p style="font-size: 1rem; margin-bottom: 15px; text-align: center;">Payment to:<br><strong>PRASANTH
-                  ELUMALAI</strong></p>
-              <div class="qr-mockup"
-                style="box-shadow: none; overflow: hidden; display: flex; justify-content: center;">
-                <img src="prasanth-qr.jpg" alt="UPI QR Code for Prasanth Elumalai"
-                  style="max-width: 180px; height: auto;">
-              </div>
-              <div style="text-align: center; margin-top: 10px;">
-                <p style="font-size: 0.9rem; font-weight: 600; color: #333; margin-bottom: 5px;">Scan to pay via Paytm
-                </p>
-                <p style="font-size: 0.8rem; color: #666;">UPI ID: 9786893309@ptsbi</p>
-              </div>
-            </div>
-
-            <!-- Akash QR -->
-            <div class="qr-placeholder"
-              style="flex: 1; min-width: 250px; background: white; padding: 15px; border-radius: 12px; color: black; display: flex; flex-direction: column; align-items: center;">
-              <p style="font-size: 1rem; margin-bottom: 15px; text-align: center;">Payment to:<br><strong>AKASH
-                  R</strong></p>
-              <div class="qr-mockup"
-                style="box-shadow: none; overflow: hidden; display: flex; justify-content: center;">
-                <img src="akash-qr.jpg" alt="UPI QR Code for Akash R" style="max-width: 180px; height: auto;">
-              </div>
-              <div style="text-align: center; margin-top: 10px;">
-                <p style="font-size: 0.9rem; font-weight: 600; color: #333; margin-bottom: 5px;">Scan to pay via GPay
-                </p>
-                <p style="font-size: 0.8rem; color: #666;">UPI ID: akashakash94820@okhdfcbank</p>
-              </div>
-            </div>
-
-            <!-- Vasanth QR -->
-            <div class="qr-placeholder"
-              style="flex: 1; min-width: 250px; background: white; padding: 15px; border-radius: 12px; color: black; display: flex; flex-direction: column; align-items: center;">
-              <p style="font-size: 1rem; margin-bottom: 15px; text-align: center;">Payment to:<br><strong>VASANTH
-                  VISHNU</strong></p>
-              <div class="qr-mockup"
-                style="box-shadow: none; overflow: hidden; display: flex; justify-content: center;">
-                <img src="vasanth-qr.jpg" alt="UPI QR Code for Vasanth Vishnu" style="max-width: 180px; height: auto;">
-              </div>
-              <div style="text-align: center; margin-top: 10px;">
-                <p style="font-size: 0.9rem; font-weight: 600; color: #333; margin-bottom: 5px;">Scan to pay via GPay
-                </p>
-                <p style="font-size: 0.8rem; color: #666;">UPI ID: vasanthvishnu11-1@okaxis</p>
-              </div>
-            </div>
-
-          </div>
-
-          <!-- Offline Payment Box -->
-          <div id="offlinePaymentBox" class="payment-box fade-in" style="display: none;">
-            <div class="warning-alert">
-              <span class="alert-icon">⚠️</span>
-              <p>Offline payment must be completed before <strong>14-05-2026</strong> to confirm your registration.</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="submit-section">
-          <button type="submit" id="submitBtn" class="btn-primary">
-            <span class="btn-text">Submit Registration</span>
-            <span class="loader" style="display: none;"></span>
-          </button>
-        </div>
+      <div class="submit-section">
+        <button type="submit" id="submitBtn" class="btn-primary">
+          <span class="btn-text">Submit Registration</span>
+          <span class="loader" style="display: none;"></span>
+        </button>
+      </div>
     </form>
   </main>
 
@@ -266,6 +177,19 @@
   </footer>
 
   <script src="script.js"></script>
+
+  <script>
+    function openAdminLogin() {
+      const password = prompt("Enter Admin Password");
+
+      if (password === "123456") {
+        window.location.href = "admin.html";
+      } else if (password !== null) {
+        alert("Wrong Password");
+      }
+    }
+  </script>
+
 </body>
 
 </html>
